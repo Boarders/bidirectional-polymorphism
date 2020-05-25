@@ -55,17 +55,20 @@ Library Core
     , mtl
         ^>= 2.2.2
     , text
-        ^>=1.2.3
-   , QuickCheck
+      ^>=1.2.3
+    , transformers
+    , QuickCheck
         ^>= 2.13.2
     , text
         ^>=1.2.3
+
 
   exposed-modules:
       Core.Expression
       Core.Context
       Core.Parser
       Core.TypeChecker
+      Core.TypeChecker.Judgement
       -- Core.PrettyPrint
 
   default-language:
