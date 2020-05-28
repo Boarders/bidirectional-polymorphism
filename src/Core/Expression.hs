@@ -40,12 +40,7 @@ data MonoType v where
   MonoArr   :: MonoType v -> MonoType v -> MonoType v
  deriving stock (Eq, Ord, Show)
 
-substitute :: Eq v => v -> (Type v) -> (Type v) -> Type v
-substitute var sub = \case
-  TyUnit -> TyUnit
-  TyVar v | v == var -> sub
-  TyArr ty1 ty2 -> TyArr (substitute var sub ty1) (substitute var sub ty2)
-  ex -> ex
+
                            
 
 -- Note: Might be better to make MonoType constructor directly in Type?
@@ -65,6 +60,10 @@ getMonoType (TyArr ty1 ty2) = do
   mon2 <- getMonoType ty2
   pure $ MonoArr mon1 mon2
 getMonoType _ = Nothing
+
+isArr :: Type v -> Maybe (Type v)
+isArr arr@(TyArr _ _) = Just arr
+isArr _ = Nothing
 
 
 asTypeScheme :: MonoType v -> Type v
