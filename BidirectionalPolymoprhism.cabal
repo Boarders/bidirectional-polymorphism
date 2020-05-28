@@ -26,8 +26,7 @@ executable repl
         ^>= 0.9.1
     , haskeline
         ^>= 0.7.5.0
-    , megaparsec
-        ^>= 7.0.5
+    , parsec
     , text
         ^>=1.2.3
     , transformers
@@ -50,8 +49,7 @@ Library Core
       base
     , containers
         ^>= 0.6
-    , megaparsec
-        ^>= 7.0.5
+    , parsec
     , mtl
         ^>= 2.2.2
     , text
