@@ -58,6 +58,16 @@ data ConTerm v where
   ScopeMark :: v -> ConTerm v
   deriving stock (Eq, Ord, Show)
 
+
+getConVar :: ConTerm v -> v
+getConVar = \case
+  (ConTyVar  v   ) -> v
+  (ConTerm   v _ ) -> v
+  (ConExVar  v   ) -> v
+  (ConExDef  v _ ) -> v
+  (ScopeMark v  )  -> v
+
+
 -- |
 -- Whether a context term is a variable
 conVar :: ConTerm v -> Maybe v
@@ -113,7 +123,14 @@ fromFocus ctxt foc = foldl' Snoc (ctxt :|> foc)
 
 fromFoci :: (Context v) -> [ConTerm v] -> [ConTerm v] -> Context v
 fromFoci ctxt foci = foldl' Snoc (foldl' Snoc ctxt foci)
-   
+
+lookupVar :: Eq v => v -> Context v -> Maybe (Type v)
+lookupVar v = go
+  where
+    go Nil = Nothing
+    go (_ :|> ConTerm var ty) | var == v = Just ty
+    go (ctxt :|> _) = go ctxt
+
 
 -- |
 -- check if a variable is present in a context.
@@ -136,7 +153,7 @@ hasConTerm conTerm = getAny . foldMap (Any . (== conTerm))
 -- Get the type (in order) of an existentially solved variable
 hasExDef :: Eq v => v -> Context v -> Maybe (MonoType v)
 hasExDef v = getFirst . foldMap (First . hasType v)
-                              
+
 
 -- |
 -- Error handler for variable not present in a context.
@@ -210,7 +227,7 @@ applyContext ctxt ex@(ExVar v) =
     Nothing -> ex
 applyContext ctxt (ForAll a ty)   = ForAll a (applyContext ctxt ty)
 applyContext ctxt (TyArr ty1 ty2) = TyArr (applyContext ctxt ty1) (applyContext ctxt ty2)
-  
+
 
 class Fresh v where
   fresh :: Context v -> v
@@ -221,7 +238,7 @@ removeTyVarSuffix _ Nil = Nil
 removeTyVarSuffix var (ctxt :|> ConTyVar v) | v == var = ctxt
 removeTyVarSuffix var (ctxt :|> _) = removeTyVarSuffix var ctxt
 
-
+-- to do: rewrite in terms of splitAt for both functions below:
 splitExVar
   :: (Eq v, MonadError e m)
   => (v -> (Context v) -> e) -> v -> Context v -> m ((Context v), [ConTerm v])
@@ -241,7 +258,11 @@ removeScopeSuffix errHand var context = go var context
     go v (c :|> _) = go v c
 
 
-instantiateExVar
-  :: (Eq v, MonadError (ContextError v) m)
-  => Context v -> MonoType v -> m (Context v)
-instantiateExVar = undefined
+splitAt
+  :: (Eq v, MonadError e m)
+  => (v -> (Context v) -> e) -> ConTerm v -> Context v -> m ((Context v), [ConTerm v])
+splitAt errHand term context = go context []
+  where
+    go Nil _ =  throwError (errHand (getConVar term) context)
+    go (c :|> conTerm) rest | term == conTerm = pure (c, rest)
+    go (c :|> conTerm) rest = go c (conTerm : rest)
