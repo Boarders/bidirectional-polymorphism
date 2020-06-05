@@ -20,42 +20,49 @@ import qualified Text.Parsec as Parsec
 main :: IO ()
 main = runInputT settings repl
    where
-       repl :: InputT IO ()
-       repl = header >> mainLoop
+     repl :: InputT IO ()
+     repl = header >> mainLoop
 
-       header :: InputT IO ()
-       header =
-         do
-           outputStrLn ""
-           headerImage
-           quitInfo
-           
-       
-       mainLoop :: InputT IO ()
-       mainLoop = do
-           minput <- getInputLine "λ  "
-           case minput of
-               Nothing -> return ()
-               Just ":quit" -> return ()
-               Just ":q"    -> return ()
-               Just input ->
-                   case lexInput input of
-                     Left err ->
-                       do
-                         outputStrLn "Parse error: "
-                         outputStrLn (show err)
-                         mainLoop
-                     Right expr ->
-                       do
-                         outputStrLn "Lex: "
-                         outputStrLn (show (fmap fst expr))
-                         outputStrLn ""                         
---                         outputStrLn "Parse: "                         
-                         mainLoop
+     header :: InputT IO ()
+     header = do
+       outputStrLn ""
+       headerImage
+       quitInfo
+
+
+     mainLoop :: InputT IO ()
+     mainLoop = do
+       minput <- getInputLine "λ  "
+       case minput of
+         Nothing -> return ()
+         Just ":quit" -> return ()
+         Just ":q"    -> return ()
+         Just input ->
+           case lexInput input of
+             Left err -> do
+               outputStrLn "Lex error: "
+               outputStrLn (show err)
+               mainLoop
+             Right expr -> do
+               outputStrLn "Lex: "
+               outputStrLn (show (fmap fst expr))
+               outputStrLn ""
+               case typeInput expr of
+                 Left err -> do
+                   outputStrLn "Parse error: "
+                   outputStrLn (show err)
+                   mainLoop
+                 Right ty -> do
+                   outputStrLn "Parse: "
+                   outputStrLn (show ty)
+                   mainLoop
 
 
 lexInput :: String -> Either Parsec.ParseError [Token]
 lexInput = Parsec.runParser lexTerm () ""
+
+typeInput :: [Token] -> Either Parsec.ParseError (Type String)
+typeInput = Parsec.runParser parseType () ""
 
 
 settings :: MonadIO m => Settings m
