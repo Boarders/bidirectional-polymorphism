@@ -6,12 +6,13 @@
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE RankNTypes           #-}  
+{-# LANGUAGE RankNTypes           #-}
 module Core.Parser
   (
     lexTerm
   , Token
   , parseTerm
+  , parseType
   ) where
 
 import Data.Text hiding (empty, foldr, foldl', length, null, splitAt, span)
@@ -26,11 +27,10 @@ import Text.Parsec (Parsec, SourcePos, many)
 import qualified Text.Parsec as Parsec
 import Control.Applicative hiding (many)
 
-
-
-
-
 import Core.Expression
+
+import System.IO.Unsafe
+import Debug.Trace
 
 data Info = Info
   { fileName :: Maybe String
@@ -152,28 +152,41 @@ parseTyVar =
 parseForAll :: Parser (Type String)
 parseForAll =
   do
-    LForAll var <- fmap getToken $ satisfy isTokVar    
+    LForAll var <- fmap getToken $ satisfy isForAll
     ty  <- parseType
     pure $ ForAll var ty
+
+parsePrimType :: Parser (Type String)
+parsePrimType = do
+  Parsec.choice
+    [ parseTyUnit
+    , parseTyVar
+    ]
 
 parseArr :: Parser (Type String)
 parseArr =
   do
-    ty1 <- parseType
+    ty1 <- parsePrimType
     token LArr
     ty2 <- parseType
     pure (TyArr ty1 ty2)
 
 parseType :: Parser (Type String)
-parseType =
-  Parsec.choice
-    [parseTyUnit, parseForAll, parseTyVar, parseArr]
+parseType = do
+  ty <- Parsec.choice
+    [ parseTyUnit
+    , parseForAll
+    , Parsec.try parseArr
+    , parseTyVar
+    ]
+  Parsec.eof
+  pure ty
 
 
 parseTerm :: Parser (Term Text)
 parseTerm = undefined
-    
-  
+
+
 token :: Token' String -> Parser Token
 token token = satisfy match
   where
@@ -190,8 +203,7 @@ satisfy match = Parsec.tokenPrim pr nextSrcPos match'
         pure (m, inf)
     pr = tokenPretty
     nextSrcPos pos _ _ = pos
-    
-    
+
 
 
 
