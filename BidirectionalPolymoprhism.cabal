@@ -64,7 +64,9 @@ Library Core
   exposed-modules:
       Core.Expression
       Core.Context
-      Core.Parser
+      Core.Parser.Type
+      Core.Parser.Term
+      Core.Parser.Lex
       Core.TypeChecker
       Core.TypeChecker.Judgement
       -- Core.PrettyPrint
